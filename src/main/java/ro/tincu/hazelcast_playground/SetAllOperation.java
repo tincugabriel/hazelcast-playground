@@ -58,6 +58,7 @@ public class SetAllOperation extends AbstractMapOperation implements PartitionAw
                 recordStore.set(dataKey, dataValue, -1);
                 mapService.interceptAfterPut(name, dataValue);
                 keysToInvalidate.add(dataKey);
+                mapService.publishEvent(getCallerAddress(), name, EntryEventType.ADDED, dataKey, null, dataValue);
                 if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
                     Record record = recordStore.getRecord(dataKey);
                     final SimpleEntryView entryView = mapService.createSimpleEntryView(dataKey,mapService.toData(dataValue),record);
