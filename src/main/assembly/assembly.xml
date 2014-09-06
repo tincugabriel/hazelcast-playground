@@ -2,10 +2,11 @@
     <id>app-assembly</id>
     <formats>
         <format>dir</format>
+        <format>zip</format>
     </formats>
     <dependencySets>
         <dependencySet>
-            <useProjectArtifact>false</useProjectArtifact>
+            <useProjectArtifact>true</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
         </dependencySet>
     </dependencySets>
@@ -13,6 +14,10 @@
         <fileSet>
             <directory>${basedir}/src/main/resources</directory>
             <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${basedir}/src/main/bin</directory>
+            <outputDirectory>bin</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
