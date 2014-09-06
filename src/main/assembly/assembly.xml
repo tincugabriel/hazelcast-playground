@@ -13,9 +13,6 @@
         <fileSet>
             <directory>${basedir}/src/main/resources</directory>
             <outputDirectory>conf</outputDirectory>
-            <includes>
-                <include>*.*</include>
-            </includes>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>

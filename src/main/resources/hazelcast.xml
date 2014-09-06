@@ -2,8 +2,8 @@
         xmlns="http://www.hazelcast.com/schema/config"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <map name="myMap">
-        <in-memory-format>OBJECT</in-memory-format>
+        <in-memory-format>CACHED</in-memory-format>
         <backup-count>0</backup-count>
-        <async-backup-count>0</async-backup-count>
+        <async-backup-count>1</async-backup-count>
     </map>
 </hazelcast>
