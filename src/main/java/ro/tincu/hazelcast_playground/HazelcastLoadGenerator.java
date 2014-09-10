@@ -41,11 +41,11 @@ public class HazelcastLoadGenerator {
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         CommandLineParser parser = new GnuParser();
         CommandLine commandLine = parser.parse(options, args);
-        String optionValue = commandLine.getOptionValue("s", "5000");
+        String sizeValue = commandLine.getOptionValue("s", "10000");
         String splitNum = commandLine.getOptionValue("n","1");
         boolean optimized = commandLine.hasOption("o");
         int num = Integer.parseInt(splitNum);
-        int size = Integer.parseInt(optionValue);
+        int size = Integer.parseInt(sizeValue);
         Map<String, String> loadMap = new ConcurrentHashMap<>();
         for(int i=0 ; i<size ; i++){
             loadMap.put(String.format(KEY_TEMPLATE,i+(size*num)), String.format(VALUE_TEMPLATE,i+(size*num)));
@@ -55,12 +55,13 @@ public class HazelcastLoadGenerator {
                 1000, 1000, TimeUnit.MILLISECONDS);
         LOGGER.info(String.format("Started cyclic background update thread for %d element, with optimized set to %s," +
                 " and the number set to %d",size, optimized, num));
-        synchronized (optionValue){
-            optionValue.wait();
+        synchronized (sizeValue){
+            sizeValue.wait();
         }
     }
 
     static class BackgroundRunnable implements Runnable {
+        private final ExecutorService executor = Executors.newFixedThreadPool(100);
         private final HazelcastInstance instance;
         private final IMap<String, String> map;
         private final Map<String, String> loadMap;
@@ -86,7 +87,15 @@ public class HazelcastLoadGenerator {
 
         private void runNormal(){
             long then = System.currentTimeMillis();
-            map.putAll(loadMap);
+            List<BackgroundMapSet> callables = new ArrayList<>();
+            for(Map.Entry<String, String> entry : loadMap.entrySet()){
+                callables.add(new BackgroundMapSet(map, entry));
+            }
+            try {
+                executor.invokeAll(callables, 1000, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e){
+                LOGGER.error("Caught exception while waiting for invocation to finish : ",e);
+            }
             LOGGER.info(String.format("Made a bulk update useing putAll for %d elements in %d millisecond",
                     loadMap.size(), System.currentTimeMillis() - then));
         }
@@ -137,6 +146,22 @@ public class HazelcastLoadGenerator {
                 LOGGER.info(String.format("Optimized setAll operation for %d entries took %d milliseconds",
                         loadMap.size(), System.currentTimeMillis() - millis));
             }
+        }
+    }
+
+    static class BackgroundMapSet implements Callable<Void>{
+        private final IMap<String, String> iMap;
+        private final Map.Entry<String, String> entry;
+
+        public BackgroundMapSet(IMap<String, String> iMap, Map.Entry<String, String> entry){
+            this.entry = entry;
+            this.iMap = iMap;
+        }
+
+        @Override
+        public Void call() throws Exception {
+            iMap.set(entry.getKey(), entry.getValue());
+            return null;
         }
     }
 }

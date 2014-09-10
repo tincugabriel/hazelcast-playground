@@ -1,0 +1,23 @@
+---
+- hosts: master
+  vars:
+   source_folder: ~/workspace/hazelcast-playground
+  tasks:
+  - name: Maven clean and install target
+    shell: cd {{source_folder}} && mvn clean install
+- hosts: rest
+  vars:
+   source_folder: ~/workspace/hazelcast-playground
+   dest_folder: /tmp/target
+  tasks:
+  - name: delete target folder inside /tmp dir
+    file: name={{dest_folder}} state=absent
+  - name: recreate target folder inside /tmp dir
+    file: name={{dest_folder}} state=directory
+  - name: copy assembly output to targets
+    copy: src={{source_folder}}/target/hazelcast-playground-1.0-SNAPSHOT-app-assembly/hazelcast-playground-1.0-SNAPSHOT dest={{dest_folder}}
+  - name: mark shell scripts as executable
+    file: name={{item}} mode=777
+    with_items:
+     - /tmp/target/hazelcast-playground-1.0-SNAPSHOT/bin/run-service.sh
+     - /tmp/target/hazelcast-playground-1.0-SNAPSHOT/bin/run-size-service.sh
