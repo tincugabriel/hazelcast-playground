@@ -20,6 +20,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.log4j.Logger;
 
+import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -42,6 +43,7 @@ public class HazelcastLoadGenerator {
         CommandLineParser parser = new GnuParser();
         CommandLine commandLine = parser.parse(options, args);
         String sizeValue = commandLine.getOptionValue("s", "10000");
+        String hostName = InetAddress.getLocalHost().getHostName();
         String splitNum = commandLine.getOptionValue("n","1");
         boolean optimized = commandLine.hasOption("o");
         int num = Integer.parseInt(splitNum);
@@ -96,7 +98,7 @@ public class HazelcastLoadGenerator {
             } catch (InterruptedException e){
                 LOGGER.error("Caught exception while waiting for invocation to finish : ",e);
             }
-            LOGGER.info(String.format("Made a bulk update useing putAll for %d elements in %d millisecond",
+            LOGGER.info(String.format("Made a bulk update using putAll for %d elements in %d milliseconds",
                     loadMap.size(), System.currentTimeMillis() - then));
         }
 

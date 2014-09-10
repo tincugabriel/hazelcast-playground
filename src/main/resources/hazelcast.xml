@@ -3,15 +3,19 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <map name="myMap">
         <in-memory-format>OBJECT</in-memory-format>
-        <backup-count>0</backup-count>
+        <backup-count>1</backup-count>
         <async-backup-count>1</async-backup-count>
     </map>
     <network>
         <join>
-            <multicast enabled="true">
+            <multicast enabled="false">
                 <multicast-group>224.2.2.3</multicast-group>
                 <multicast-port>54327</multicast-port>
             </multicast>
+            <tcp-ip enabled="true">
+                <member>192.168.56.101</member>
+                <member>192.168.56.102</member>
+            </tcp-ip>
         </join>
     </network>
 </hazelcast>
