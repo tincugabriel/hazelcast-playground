@@ -43,14 +43,14 @@ public class HazelcastLoadGenerator {
         CommandLineParser parser = new GnuParser();
         CommandLine commandLine = parser.parse(options, args);
         String sizeValue = commandLine.getOptionValue("s", "10000");
-        String hostName = InetAddress.getLocalHost().getHostName();
         String splitNum = commandLine.getOptionValue("n","1");
         boolean optimized = commandLine.hasOption("o");
         int num = Integer.parseInt(splitNum);
         int size = Integer.parseInt(sizeValue);
         Map<String, String> loadMap = new ConcurrentHashMap<>();
         for(int i=0 ; i<size ; i++){
-            loadMap.put(String.format(KEY_TEMPLATE,i+(size*num)), String.format(VALUE_TEMPLATE,i+(size*num)));
+            int postFix = i+(size*num);
+            loadMap.put(String.format(KEY_TEMPLATE,postFix), String.format(VALUE_TEMPLATE,postFix));
         }
         scheduledExecutorService.scheduleAtFixedRate(
                 new BackgroundRunnable(INSTANCE, INSTANCE.<String,String>getMap("test"), loadMap, optimized),
@@ -98,6 +98,7 @@ public class HazelcastLoadGenerator {
             } catch (InterruptedException e){
                 LOGGER.error("Caught exception while waiting for invocation to finish : ",e);
             }
+            map.size();
             LOGGER.info(String.format("Made a bulk update using putAll for %d elements in %d milliseconds",
                     loadMap.size(), System.currentTimeMillis() - then));
         }
