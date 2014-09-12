@@ -1,5 +1,7 @@
 package ro.tincu.hazelcast_playground;
 
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.proxy.ClientMapProxy;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InMemoryFormat;
@@ -31,7 +33,7 @@ import static com.hazelcast.map.MapService.SERVICE_NAME;
  */
 public class HazelcastLoadGenerator {
     public static final Logger LOGGER = Logger.getLogger(HazelcastLoadGenerator.class);
-    public static final HazelcastInstance INSTANCE = Hazelcast.newHazelcastInstance();
+    public static final HazelcastInstance INSTANCE = HazelcastClient.newHazelcastClient();
     public static final String KEY_TEMPLATE = "map_key_number_%d";
     public static final String VALUE_TEMPLATE = "map_value_number_%d";
     public static void main(String[] args) throws Exception {
@@ -104,51 +106,57 @@ public class HazelcastLoadGenerator {
         }
 
         private void runOptimized(){
-            long millis = System.currentTimeMillis();
             if(map instanceof MapProxyImpl){
-                MapProxyImpl<String, String> proxyMap = (MapProxyImpl<String, String>)map;
-                final NodeEngine nodeEngine = proxyMap.getNodeEngine();
-                final MapService mapService = proxyMap.getService();
-                InternalPartitionService partitionService = nodeEngine.getPartitionService();
-                OperationService operationService = nodeEngine.getOperationService();
-                PartitioningStrategy strategy = mapService.getMapContainer(proxyMap.getName()).getPartitioningStrategy();
-                List<Future> futures = new LinkedList<Future>();
-                Map<Integer, MapEntrySet> entryMap = new HashMap<Integer, MapEntrySet>(nodeEngine.getPartitionService().getPartitionCount());
-                for (Map.Entry entry : loadMap.entrySet()) {
-                    if (entry.getKey() == null) {
-                        throw new NullPointerException("Null key not allowed");
-                    }
-                    if (entry.getValue() == null) {
-                        throw new NullPointerException("Null value not allowed");
-                    }
-                    int partitionId = partitionService.getPartitionId(entry.getKey());
-                    if (!entryMap.containsKey(partitionId)) {
-                        entryMap.put(partitionId, new MapEntrySet());
-                    }
-                    entryMap.get(partitionId).add(new AbstractMap.SimpleImmutableEntry<Data, Data>(mapService.toData(
-                            entry.getKey(),
-                            strategy),
-                            mapService.toData(entry.getValue())
-                    ));
-                }
-
-                for (final Map.Entry<Integer, MapEntrySet> entry : entryMap.entrySet()) {
-                    final Integer partitionId = entry.getKey();
-                    final SetAllOperation op = new SetAllOperation(proxyMap.getName(), entry.getValue());
-                    op.setPartitionId(partitionId);
-                    futures.add(operationService.invokeOnPartition(SERVICE_NAME, op, partitionId));
-                }
-
-                for (Future future : futures) {
-                    try {
-                        future.get();
-                    } catch (Exception e){
-                        LOGGER.warn("Encountered error during optimized set bulk operation : ",e);
-                    }
-                }
-                LOGGER.info(String.format("Optimized setAll operation for %d entries took %d milliseconds",
-                        loadMap.size(), System.currentTimeMillis() - millis));
+                optimisedAsLocalInstance();
+            } else if(map instanceof ClientMapProxy){
+                ClientMapProxy<String,String> mapProxy = (ClientMapProxy)map;
             }
+        }
+
+        private void optimisedAsLocalInstance() {
+            long millis = System.currentTimeMillis();
+            MapProxyImpl<String, String> proxyMap = (MapProxyImpl<String, String>)map;
+            final NodeEngine nodeEngine = proxyMap.getNodeEngine();
+            final MapService mapService = proxyMap.getService();
+            InternalPartitionService partitionService = nodeEngine.getPartitionService();
+            OperationService operationService = nodeEngine.getOperationService();
+            PartitioningStrategy strategy = mapService.getMapContainer(proxyMap.getName()).getPartitioningStrategy();
+            List<Future> futures = new LinkedList<Future>();
+            Map<Integer, MapEntrySet> entryMap = new HashMap<Integer, MapEntrySet>(nodeEngine.getPartitionService().getPartitionCount());
+            for (Map.Entry entry : loadMap.entrySet()) {
+                if (entry.getKey() == null) {
+                    throw new NullPointerException("Null key not allowed");
+                }
+                if (entry.getValue() == null) {
+                    throw new NullPointerException("Null value not allowed");
+                }
+                int partitionId = partitionService.getPartitionId(entry.getKey());
+                if (!entryMap.containsKey(partitionId)) {
+                    entryMap.put(partitionId, new MapEntrySet());
+                }
+                entryMap.get(partitionId).add(new AbstractMap.SimpleImmutableEntry<Data, Data>(mapService.toData(
+                        entry.getKey(),
+                        strategy),
+                        mapService.toData(entry.getValue())
+                ));
+            }
+
+            for (final Map.Entry<Integer, MapEntrySet> entry : entryMap.entrySet()) {
+                final Integer partitionId = entry.getKey();
+                final SetAllOperation op = new SetAllOperation(proxyMap.getName(), entry.getValue());
+                op.setPartitionId(partitionId);
+                futures.add(operationService.invokeOnPartition(SERVICE_NAME, op, partitionId));
+            }
+
+            for (Future future : futures) {
+                try {
+                    future.get();
+                } catch (Exception e){
+                    LOGGER.warn("Encountered error during optimized set bulk operation : ",e);
+                }
+            }
+            LOGGER.info(String.format("Optimized setAll operation for %d entries took %d milliseconds",
+                    loadMap.size(), System.currentTimeMillis() - millis));
         }
     }
 

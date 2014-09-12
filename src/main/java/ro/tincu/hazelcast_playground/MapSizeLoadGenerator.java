@@ -1,5 +1,6 @@
 package ro.tincu.hazelcast_playground;
 
+import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -13,7 +14,8 @@ import java.util.Random;
 public class MapSizeLoadGenerator {
     private static final Logger LOGGER = Logger.getLogger(MapSizeLoadGenerator.class);
     public static void main(String[] args) throws Exception{
-        HazelcastInstance instance = Hazelcast.newHazelcastInstance();
+        HazelcastInstance localInstance = Hazelcast.newHazelcastInstance();
+        HazelcastInstance instance = HazelcastClient.newHazelcastClient();
         IMap<Object, Object> map = instance.getMap("test");
         Random random = new Random();
         while(true){
