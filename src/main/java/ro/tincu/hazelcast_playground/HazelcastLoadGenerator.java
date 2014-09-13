@@ -2,6 +2,7 @@ package ro.tincu.hazelcast_playground;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.proxy.ClientMapProxy;
+import com.hazelcast.client.spi.ClientProxy;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InMemoryFormat;
@@ -80,7 +81,8 @@ public class HazelcastLoadGenerator {
         public void run() {
             try{
                 if(optimized){
-                    runOptimized();
+                    SetAllClientInvocationService invocationService = new SetAllClientInvocationService(map.getName(), (ClientProxy) map);
+                    invocationService.setAll(loadMap);
                 } else {
                     runNormal();
                 }

@@ -18,7 +18,7 @@ import java.security.Permission;
 /**
  * Created by gabriel on 11.09.2014.
  */
-public class ClientSetAllRequest extends ClientRequest implements Portable, SecureRequest {
+public class ClientSetAllRequest extends KeyBasedClientRequest implements Portable, SecureRequest {
     protected String name;
     protected long threadId;
     protected long ttl;
@@ -52,11 +52,13 @@ public class ClientSetAllRequest extends ClientRequest implements Portable, Secu
     }
 
     @Override
-    void process() throws Exception {
-        Operation op = new SetAllOperation(name, entrySet);
-        //TODO -> this should be the place where you launch the operation on the localhost only !!!
-        //TODO -> Alternately, should the api allow, we could sort the entryset  out on the hazelcast instance side
-//        clientEngine.
+    protected Object getKey() {
+        return entrySet.getEntrySet().iterator().next().getKey();
+    }
+
+    @Override
+    protected Operation prepareOperation() {
+        return new SetAllOperation(name, entrySet);
     }
 
     @Override

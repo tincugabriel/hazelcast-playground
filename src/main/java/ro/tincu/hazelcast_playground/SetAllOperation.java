@@ -44,13 +44,14 @@ public class SetAllOperation extends AbstractMapOperation implements PartitionAw
     }
 
     public void run() {
-        backupRecordInfos = new ArrayList<RecordInfo>();
-        backupEntrySet = new ArrayList<Map.Entry<Data,Data>>();
+        backupRecordInfos = new ArrayList<>();
+        backupEntrySet = new ArrayList<>();
         int partitionId = getPartitionId();
         RecordStore recordStore = mapService.getRecordStore(partitionId, name);
         Set<Map.Entry<Data, Data>> entries = entrySet.getEntrySet();
         InternalPartitionService partitionService = getNodeEngine().getPartitionService();
         Set<Data> keysToInvalidate = new HashSet<Data>();
+        //TODO -> remove this condition perhaps??
         for (Map.Entry<Data, Data> entry : entries) {
             Data dataKey = entry.getKey();
             Data dataValue = entry.getValue();
